@@ -6,7 +6,8 @@ import plotly.express as px
 # Register available country modules here
 # Key: Display Name, Value: Module Name (filename in modules/countries without .py)
 COUNTRY_MODULES = {
-    "South Korea": "south_korea"
+    "South Korea": "south_korea",
+    "United States": "usa"
 }
 
 def render_header(df):
