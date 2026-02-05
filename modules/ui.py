@@ -27,9 +27,13 @@ def render_header(df):
     world_data = df[(df['location'] == 'World') & (df['date'] == latest_date)]
     
     if not world_data.empty:
-        total_cases = int(world_data['total_cases'].values[0])
-        total_deaths = int(world_data['total_deaths'].values[0])
-        total_vaccinations = world_data['total_vaccinations'].values[0]
+        total_cases_val = world_data['total_cases'].values[0]
+        total_deaths_val = world_data['total_deaths'].values[0]
+        total_vaccinations_val = world_data['total_vaccinations'].values[0]
+
+        total_cases = int(total_cases_val) if pd.notna(total_cases_val) else 0
+        total_deaths = int(total_deaths_val) if pd.notna(total_deaths_val) else 0
+        total_vaccinations = total_vaccinations_val if pd.notna(total_vaccinations_val) else 0
     else:
         total_cases = 0
         total_deaths = 0
