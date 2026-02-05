@@ -206,3 +206,7 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 data/
+
+# Claude Code
+# Claude Code 개인 설정 및 세션 파일 (팀원별로 다름)
+.claude/
