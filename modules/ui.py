@@ -79,14 +79,15 @@ def render_country_dashboard(data):
     """
     Centralized function to render visualization for any country.
     Args:
-        data (dict): Dictionary containing 'country_name', 'country_df', and 'metrics'.
+        data (dict): Dictionary containing 'country_name', 'country_df', 'metrics', and 'visualizations'.
     """
     country_name = data.get('country_name', 'Unknown')
     country_df = data.get('country_df')
     metrics = data.get('metrics')
-    
+    visualizations = data.get('visualizations', {})
+
     st.markdown(f"## 🏳️ {country_name} Analysis")
-    
+
     # 1. Metrics Row
     if metrics:
         col1, col2, col3, col4 = st.columns(4)
@@ -94,27 +95,56 @@ def render_country_dashboard(data):
         col2.metric("Total Deaths", f"{metrics['total_deaths']:,.0f}")
         col3.metric("Fully Vaccinated", f"{metrics['people_fully_vaccinated']:,.0f}")
         col4.metric("New Cases", f"{metrics['new_cases']:,.0f}")
-    
-    # 2. Daily Cases Chart
-    st.write("### 📈 Daily Cases Trend")
-    if not country_df.empty:
+
+    # 2. Daily Cases Trend (with USA enhancement)
+    st.write("### 📈 Daily Cases vs Deaths")
+    if 'dual_axis_timeseries' in visualizations:
+        st.plotly_chart(visualizations['dual_axis_timeseries'], use_container_width=True)
+    elif not country_df.empty:
+        # Fallback to basic chart
         fig = px.line(
-            country_df, 
-            x='date', 
-            y='new_cases_smoothed', 
+            country_df,
+            x='date',
+            y='new_cases_smoothed',
             title=f'Daily New Cases (Smoothed) in {country_name}',
             labels={'new_cases_smoothed': 'New Cases (7-day Avg)', 'date': 'Date'}
         )
         st.plotly_chart(fig, use_container_width=True)
 
-    # 3. Vaccination Chart
+    # 3. Vaccination Progress (with USA enhancement)
     st.write("### 💉 Vaccination Progress")
-    if not country_df.empty and 'people_fully_vaccinated' in country_df.columns:
+    if 'vaccination_progress' in visualizations:
+        st.plotly_chart(visualizations['vaccination_progress'], use_container_width=True)
+    elif not country_df.empty and 'people_fully_vaccinated' in country_df.columns:
+        # Fallback to basic chart
         fig2 = px.area(
-            country_df, 
-            x='date', 
-            y='people_fully_vaccinated', 
+            country_df,
+            x='date',
+            y='people_fully_vaccinated',
             title=f'Cumulative Fully Vaccinated People in {country_name}',
             labels={'people_fully_vaccinated': 'People Vaccinated', 'date': 'Date'}
         )
         st.plotly_chart(fig2, use_container_width=True)
+
+    # === USA-Specific Advanced Visualizations ===
+    if country_name == "United States" and visualizations:
+
+        # 4. Reproduction Rate (Rt)
+        if 'reproduction_rate' in visualizations:
+            st.write("### 🦠 Reproduction Rate (Rt)")
+            st.plotly_chart(visualizations['reproduction_rate'], use_container_width=True)
+
+        # 5. Vaccine by Manufacturer
+        if 'vaccine_manufacturer' in visualizations and visualizations['vaccine_manufacturer']:
+            st.write("### 💊 Vaccinations by Manufacturer")
+            st.plotly_chart(visualizations['vaccine_manufacturer'], use_container_width=True)
+
+        # 6. Case Fatality Rate Trend
+        if 'case_fatality_rate' in visualizations:
+            st.write("### 📊 Case Fatality Rate Trend")
+            st.plotly_chart(visualizations['case_fatality_rate'], use_container_width=True)
+
+        # 7. Comprehensive Dashboard (4-Panel)
+        if 'comprehensive_dashboard' in visualizations:
+            st.write("### 📉 Comprehensive COVID-19 Dashboard")
+            st.plotly_chart(visualizations['comprehensive_dashboard'], use_container_width=True)
