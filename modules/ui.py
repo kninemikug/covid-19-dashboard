@@ -7,7 +7,8 @@ import plotly.express as px
 # Key: Display Name, Value: Module Name (filename in modules/countries without .py)
 COUNTRY_MODULES = {
     "South Korea": "south_korea",
-    "United States": "usa"
+    "United States": "usa",
+    "Japan" : "japan"
 }
 
 def render_header(df):
@@ -152,3 +153,26 @@ def render_country_dashboard(data):
         if 'comprehensive_dashboard' in visualizations:
             st.write("### 📉 Comprehensive COVID-19 Dashboard")
             st.plotly_chart(visualizations['comprehensive_dashboard'], use_container_width=True)
+
+    # === Japan-Specific Advanced Visualizations ===
+    if country_name == "Japan" and visualizations:
+
+        # 4. Wave Detection (파동 감지)
+        if 'wave_detection' in visualizations:
+            st.write("### 🌊 Wave Detection (파동 감지)")
+            st.plotly_chart(visualizations['wave_detection'], use_container_width=True)
+
+        # 5. Wave Comparison (파동별 비교)
+        if 'wave_comparison' in visualizations:
+            st.write("### 📊 Wave Comparison (파동별 비교)")
+            st.plotly_chart(visualizations['wave_comparison'], use_container_width=True)
+
+        # 6. Vaccination Impact (백신 전/후 비교)
+        if 'vaccination_impact' in visualizations:
+            st.write("### 💉 Vaccination Impact (백신 접종 전/후 비교)")
+            st.plotly_chart(visualizations['vaccination_impact'], use_container_width=True)
+
+        # 7. Cases-Deaths Decoupling (확진-사망 디커플링)
+        if 'cases_deaths_decoupling' in visualizations:
+            st.write("### 📉 Cases-Deaths Decoupling (확진-사망 디커플링)")
+            st.plotly_chart(visualizations['cases_deaths_decoupling'], use_container_width=True)
