@@ -81,13 +81,11 @@ def create_dual_axis_timeseries(country_df, country_name):
         title=f'{country_name} - Daily Cases vs Deaths',
         yaxis=dict(
             title='New Cases',
-            titlefont=dict(color=COLORS['cases']),
             tickfont=dict(color=COLORS['cases']),
             side='left'
         ),
         yaxis2=dict(
             title='New Deaths',
-            titlefont=dict(color=COLORS['deaths']),
             tickfont=dict(color=COLORS['deaths']),
             overlaying='y',
             side='right'

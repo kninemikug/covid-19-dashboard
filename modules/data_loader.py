@@ -1,5 +1,6 @@
 import pandas as pd
 import kagglehub
+import streamlit as st
 import os
 
 # Kaggle Dataset Handles (username/dataset-slug)
@@ -9,6 +10,8 @@ DATASET_HANDLES = [
     "gpreda/covid-world-vaccination-progress"
 ]
 
+
+@st.cache_data(ttl=3600)  # 1시간 캐시
 def download_datasets():
     """
     Download datasets from Kaggle using kagglehub.
@@ -29,6 +32,8 @@ def download_datasets():
             
     return dataset_paths
 
+
+@st.cache_data(ttl=3600)  # 1시간 캐시
 def load_data():
     """
     Load, merge, and preprocess data from downloaded datasets.
@@ -47,6 +52,15 @@ def load_data():
         df_main = pd.read_csv(daily_path)
         df_main['date'] = pd.to_datetime(df_main['date'])
         
+        # --- Standardize Country Names for Consistency ---
+        # Main dataset (JHU style) uses 'Korea, South', 'US'
+        # Secondary dataset (OWID) uses 'South Korea', 'United States'
+        name_mapping = {
+            'Korea, South': 'South Korea',
+            'US': 'United States'
+        }
+        df_main['location'] = df_main['location'].replace(name_mapping)
+        
         # --- 2. Load Secondary Dataset (OWID) ---
         # Used for supplementary info (e.g. early spread data not in main)
         owid_path = os.path.join(dataset_paths["georgesaavedra/covid19-dataset"], "owid-covid-data.csv")
@@ -54,17 +68,24 @@ def load_data():
         df_owid = pd.read_csv(owid_path)
         df_owid['date'] = pd.to_datetime(df_owid['date'])
         
-        # --- 3. Load Vaccination Manufacturer Data ---
-        vacc_path = os.path.join(dataset_paths["gpreda/covid-world-vaccination-progress"], "country_vaccinations_by_manufacturer.csv")
-        print(f"Loading vaccination data from {vacc_path}...")
-        df_vacc = pd.read_csv(vacc_path)
-        df_vacc['date'] = pd.to_datetime(df_vacc['date'])
+        # --- 3. Load Vaccination Data (General + Manufacturer) ---
+        # 3-1. General Vaccination Progress (More complete than OWID for some countries)
+        vacc_prog_path = os.path.join(dataset_paths["gpreda/covid-world-vaccination-progress"], "country_vaccinations.csv")
+        print(f"Loading vaccination progress data from {vacc_prog_path}...")
+        df_vacc_prog = pd.read_csv(vacc_prog_path)
+        df_vacc_prog['date'] = pd.to_datetime(df_vacc_prog['date'])
+        df_vacc_prog.rename(columns={'country': 'location'}, inplace=True) # Rename for merge
+
+        # 3-2. Manufacturer Data
+        vacc_mfg_path = os.path.join(dataset_paths["gpreda/covid-world-vaccination-progress"], "country_vaccinations_by_manufacturer.csv")
+        print(f"Loading vaccination manufacturer data from {vacc_mfg_path}...")
+        df_vacc_mfg = pd.read_csv(vacc_mfg_path)
+        df_vacc_mfg['date'] = pd.to_datetime(df_vacc_mfg['date'])
         
         # --- 4. Merge Datasets ---
         print("Merging datasets...")
         
         # Merge 1: Main + OWID (Left Join)
-        # Suffix '_owid' for overlapping columns to distinguish source
         merged_step1 = pd.merge(
             df_main, 
             df_owid, 
@@ -73,10 +94,27 @@ def load_data():
             suffixes=('', '_owid')
         )
         
-        # Merge 2: Result + Vaccination Manufacturer (Left Join)
+        # Merge 2: Result + Vaccination Progress (Left Join)
+        # Use this to fill missing values from OWID
+        merged_step2 = pd.merge(
+            merged_step1,
+            df_vacc_prog[['location', 'date', 'people_fully_vaccinated', 'total_vaccinations']],
+            how='left',
+            on=['location', 'date'],
+            suffixes=('', '_vax_prog')
+        )
+        
+        # Fill missing values: Main/OWID -> Vaccination Progress
+        for col in ['people_fully_vaccinated', 'total_vaccinations']:
+            vax_col = f"{col}_vax_prog"
+            if vax_col in merged_step2.columns:
+                merged_step2[col] = merged_step2[col].fillna(merged_step2[vax_col])
+                merged_step2.drop(columns=[vax_col], inplace=True)
+
+        # Merge 3: Result + Vaccination Manufacturer (Left Join)
         merged_df = pd.merge(
-            merged_step1, 
-            df_vacc, 
+            merged_step2, 
+            df_vacc_mfg, 
             how='left', 
             on=['location', 'date'],
             suffixes=('', '_vacc_manufacturer')
